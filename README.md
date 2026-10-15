@@ -1,56 +1,127 @@
-# Scalable Microservices Deployment Using Kubernetes
+# 🚀 Scalable Microservices Deployment Using Kubernetes
 
-## 1. Project Objective
-
-This project demonstrates how to build, containerize, and deploy scalable microservices using **Kubernetes (Minikube)**. Two independent microservices — **Student Service** and **Course Service** — are developed using Node.js and Express.js, packaged into Docker containers, and deployed on a local Kubernetes cluster. The project showcases core DevOps concepts including containerization, orchestration, service discovery, scalability, and self-healing.
+> Build, containerize, and deploy scalable microservices on a local Kubernetes cluster with auto-scaling and self-healing.
 
 ---
 
-## 2. Technologies Used
+## 📋 Table of Contents
 
-| Technology      | Purpose                                      |
-|-----------------|----------------------------------------------|
-| Node.js         | Runtime for building the microservices        |
-| Express.js      | Web framework for creating REST APIs          |
-| Docker          | Containerization of each microservice         |
-| Kubernetes      | Container orchestration and scaling           |
-| Minikube        | Running a local single-node Kubernetes cluster|
-| kubectl         | Command-line tool to manage Kubernetes        |
+- [Project Overview](#-project-overview)
+- [Architecture](#-architecture)
+- [Tech Stack](#-tech-stack)
+- [Project Structure](#-project-structure)
+- [Prerequisites](#-prerequisites)
+- [Getting Started](#-getting-started)
+  - [1. Start Minikube](#1-start-minikube)
+  - [2. Build Docker Images](#2-build-docker-images)
+  - [3. Deploy to Kubernetes](#3-deploy-to-kubernetes)
+- [Testing the APIs](#-testing-the-apis)
+- [Auto-Scaling (HPA)](#-auto-scaling-hpa)
+- [Self-Healing Demo](#-self-healing-demo)
+- [Useful Commands](#-useful-commands)
+- [Cleanup](#-cleanup)
+- [Conclusion](#-conclusion)
 
 ---
 
-## 3. Project Folder Structure
+## 🎯 Project Overview
+
+This project demonstrates core **DevOps and cloud-native concepts** by deploying two independent microservices on a local Kubernetes cluster:
+
+| Microservice        | Description                          | Port  | Replicas |
+|---------------------|--------------------------------------|-------|----------|
+| **Student Service** | REST API serving student records     | 3001  | 2 (auto-scales to 5) |
+| **Course Service**  | REST API serving course catalog      | 3002  | 1        |
+
+**Key concepts demonstrated:**
+
+- ✅ Containerization with Docker
+- ✅ Orchestration with Kubernetes
+- ✅ Horizontal auto-scaling (HPA)
+- ✅ Self-healing & desired-state maintenance
+- ✅ Service discovery via Kubernetes Services
+
+---
+
+## 🏗 Architecture
+
+```
+┌─────────────────────────────────────────────────────────┐
+│                   Minikube Cluster                       │
+│                                                         │
+│  ┌──────────────────────┐  ┌──────────────────────┐     │
+│  │  Student Service      │  │  Course Service       │     │
+│  │  (Deployment)         │  │  (Deployment)         │     │
+│  │                       │  │                       │     │
+│  │  ┌─────┐  ┌─────┐    │  │  ┌─────┐              │     │
+│  │  │Pod 1│  │Pod 2│    │  │  │Pod 1│              │     │
+│  │  └─────┘  └─────┘    │  │  └─────┘              │     │
+│  │  (scales up to 5)     │  │  (1 replica)          │     │
+│  └──────────┬───────────┘  └──────────┬───────────┘     │
+│             │                         │                  │
+│  ┌──────────▼───────────┐  ┌──────────▼───────────┐     │
+│  │  Service (NodePort)   │  │  Service (NodePort)   │     │
+│  │  Port: 30001          │  │  Port: 30002          │     │
+│  └──────────────────────┘  └──────────────────────┘     │
+│                                                         │
+│  ┌──────────────────────┐                               │
+│  │  HPA (Auto-Scaler)   │                               │
+│  │  Target: 50% CPU     │                               │
+│  │  Min: 2 → Max: 5     │                               │
+│  └──────────────────────┘                               │
+└─────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🛠 Tech Stack
+
+| Technology   | Purpose                                       |
+|--------------|-----------------------------------------------|
+| Node.js      | Runtime for building the microservices         |
+| Express.js   | Web framework for creating REST APIs           |
+| Docker       | Containerization of each microservice          |
+| Kubernetes   | Container orchestration and scaling            |
+| Minikube     | Local single-node Kubernetes cluster           |
+| kubectl      | CLI tool to manage Kubernetes resources        |
+
+---
+
+## 📁 Project Structure
 
 ```
 Scalable microservices/
 ├── student-service/
-│   ├── index.js          # Express app with /students and /health endpoints
-│   ├── package.json      # Node.js dependencies
-│   └── Dockerfile        # Docker build instructions
+│   ├── index.js              # Express app — /students & /health endpoints
+│   ├── package.json           # Node.js dependencies
+│   └── Dockerfile             # Docker build instructions
 ├── course-service/
-│   ├── index.js          # Express app with /courses and /health endpoints
-│   ├── package.json      # Node.js dependencies
-│   └── Dockerfile        # Docker build instructions
+│   ├── index.js              # Express app — /courses & /health endpoints
+│   ├── package.json           # Node.js dependencies
+│   └── Dockerfile             # Docker build instructions
 ├── k8s/
-│   ├── student-deployment.yaml   # Kubernetes Deployment (2 replicas)
-│   ├── student-service.yaml      # Kubernetes Service (NodePort 30001)
-│   ├── course-deployment.yaml    # Kubernetes Deployment (1 replica)
-│   └── course-service.yaml       # Kubernetes Service (NodePort 30002)
-└── README.md             # Project documentation (this file)
+│   ├── student-deployment.yaml    # Deployment (2 replicas)
+│   ├── student-service.yaml       # Service (NodePort 30001)
+│   ├── student-hpa.yaml           # HorizontalPodAutoscaler (2→5 pods)
+│   ├── course-deployment.yaml     # Deployment (1 replica)
+│   └── course-service.yaml        # Service (NodePort 30002)
+└── README.md
 ```
 
 ---
 
-## 4. Prerequisites
+## ✅ Prerequisites
 
-Make sure the following tools are installed on your Windows machine:
+Ensure the following tools are installed on your machine:
 
-1. **Node.js** (v18 or later) — [Download](https://nodejs.org/)
-2. **Docker Desktop** — [Download](https://www.docker.com/products/docker-desktop/)
-3. **Minikube** — [Download](https://minikube.sigs.k8s.io/docs/start/)
-4. **kubectl** — [Download](https://kubernetes.io/docs/tasks/tools/install-kubectl-windows/)
+| Tool              | Version   | Download                                                              |
+|-------------------|-----------|-----------------------------------------------------------------------|
+| Node.js           | v18+      | [nodejs.org](https://nodejs.org/)                                     |
+| Docker Desktop    | Latest    | [docker.com](https://www.docker.com/products/docker-desktop/)         |
+| Minikube          | Latest    | [minikube.sigs.k8s.io](https://minikube.sigs.k8s.io/docs/start/)     |
+| kubectl           | Latest    | [kubernetes.io](https://kubernetes.io/docs/tasks/tools/)              |
 
-Verify installations by running these commands in **PowerShell**:
+**Verify installations:**
 
 ```powershell
 node --version
@@ -61,82 +132,59 @@ kubectl version --client
 
 ---
 
-## 5. Build Docker Images
+## 🚀 Getting Started
 
-### Step 5.1 — Start Minikube
-
-Open **PowerShell** and run:
+### 1. Start Minikube
 
 ```powershell
 minikube start --driver=docker
 ```
 
-Wait until you see a message confirming that the cluster is ready.
-
-### Step 5.2 — Point Docker to Minikube's Docker Daemon
-
-This step is **critical**. It makes Docker build images directly inside Minikube so that Kubernetes can find them without needing a remote registry.
+Then point your Docker CLI to Minikube's Docker daemon (required so K8s can find locally-built images):
 
 ```powershell
 & minikube -p minikube docker-env --shell powershell | Invoke-Expression
 ```
 
-> **Note:** This command only affects the current PowerShell session. If you open a new terminal, you must run this command again.
+> **⚠️ Important:** This only affects the current terminal session. Re-run it if you open a new window.
 
-### Step 5.3 — Build the Student Service Image
+### 2. Build Docker Images
 
-Navigate to the project root folder first:
-
-```powershell
-cd "C:\PROJECTS\Scalable microservices"
-```
-
-Then build the image:
+From the project root directory:
 
 ```powershell
+# Build Student Service image
 docker build -t student-service:latest ./student-service
-```
 
-### Step 5.4 — Build the Course Service Image
-
-From the same project root folder:
-
-```powershell
+# Build Course Service image
 docker build -t course-service:latest ./course-service
 ```
 
-### Step 5.5 — Verify the Images
+**Verify both images exist:**
 
 ```powershell
 docker images | Select-String "student-service|course-service"
 ```
 
-You should see both `student-service` and `course-service` with the `latest` tag.
+### 3. Deploy to Kubernetes
 
----
-
-## 6. Deploy to Kubernetes
-
-### Step 6.1 — Apply All Kubernetes Configurations
-
-From the project root folder (`C:\PROJECTS\Scalable microservices`):
+Apply all manifests from the `k8s/` directory:
 
 ```powershell
 kubectl apply -f ./k8s/student-deployment.yaml
 kubectl apply -f ./k8s/student-service.yaml
+kubectl apply -f ./k8s/student-hpa.yaml
 kubectl apply -f ./k8s/course-deployment.yaml
 kubectl apply -f ./k8s/course-service.yaml
 ```
 
-You should see output confirming that each deployment and service was created.
-
-### Step 6.2 — Verify Pods Are Running
+**Verify everything is running:**
 
 ```powershell
 kubectl get pods
 ```
 
-Expected output (names will vary):
+Expected output:
 
 ```
 NAME                               READY   STATUS    RESTARTS   AGE
@@ -145,9 +193,7 @@ student-service-xxxxxxxxx-yyyyy    1/1     Running   0          30s
 course-service-xxxxxxxxx-zzzzz     1/1     Running   0          30s
 ```
 
-> Notice that **Student Service has 2 pods** (2 replicas) and **Course Service has 1 pod**.
-
-### Step 6.3 — Verify Services
+> 💡 Student Service has **2 pods** (2 replicas), Course Service has **1 pod**.
 
 ```powershell
 kubectl get services
@@ -159,60 +205,37 @@ Expected output:
 NAME              TYPE       CLUSTER-IP      EXTERNAL-IP   PORT(S)          AGE
 student-service   NodePort   10.x.x.x        <none>        3001:30001/TCP   30s
 course-service    NodePort   10.x.x.x        <none>        3002:30002/TCP   30s
-kubernetes        ClusterIP  10.96.0.1        <none>        443/TCP          5m
 ```
 
 ---
 
-## 7. Access and Test the APIs
+## 🧪 Testing the APIs
 
-### Step 7.1 — Get the Minikube IP
-
-```powershell
-minikube ip
-```
-
-Note the IP address (e.g., `192.168.49.2`).
-
-### Step 7.2 — Open the Services Using Minikube
-
-The most reliable way to access NodePort services on Windows is using `minikube service`:
-
-**Student Service:**
+### Get the Service URLs
 
 ```powershell
 minikube service student-service --url
-```
-
-This will print a URL like `http://127.0.0.1:xxxxx`. Use that URL to test.
-
-**Course Service:**
-
-```powershell
 minikube service course-service --url
 ```
 
-### Step 7.3 — Test the Endpoints
+### Test Endpoints
 
-Replace `<STUDENT_URL>` and `<COURSE_URL>` with the URLs from the previous step.
-
-**Test Student Service:**
+Replace `<URL>` with the URLs from above:
 
 ```powershell
+# Student Service
 curl <STUDENT_URL>/students
 curl <STUDENT_URL>/health
-```
 
-**Test Course Service:**
-
-```powershell
+# Course Service
 curl <COURSE_URL>/courses
 curl <COURSE_URL>/health
 ```
 
-**Expected JSON Responses:**
+### Expected Responses
 
-`GET /students`:
+**`GET /students`**
+
 ```json
 {
   "success": true,
@@ -226,7 +249,8 @@ curl <COURSE_URL>/health
 }
 ```
 
-`GET /courses`:
+**`GET /courses`**
+
 ```json
 {
   "success": true,
@@ -240,118 +264,110 @@ curl <COURSE_URL>/health
 }
 ```
 
-`GET /health`:
+**`GET /health`**
+
 ```json
 { "status": "healthy", "service": "student-service" }
 ```
 
 ---
 
-## 8. Verify Running Pods and Services
+## 📈 Auto-Scaling (HPA)
 
-### View All Pods with Details
+The Student Service is configured with a **HorizontalPodAutoscaler** that automatically scales pods based on CPU usage:
 
-```powershell
-kubectl get pods -o wide
-```
+| Parameter          | Value                |
+|--------------------|----------------------|
+| Target Deployment  | `student-service`    |
+| Min Replicas       | 2                    |
+| Max Replicas       | 5                    |
+| CPU Target         | 50% utilization      |
 
-### View All Services
-
-```powershell
-kubectl get services
-```
-
-### View All Deployments
+**Check HPA status:**
 
 ```powershell
-kubectl get deployments
+kubectl get hpa
 ```
 
-### View Logs of a Specific Pod
-
-```powershell
-# Replace <pod-name> with the actual pod name from "kubectl get pods"
-kubectl logs <pod-name>
-```
-
-### Describe a Deployment
-
-```powershell
-kubectl describe deployment student-service
-```
+When CPU utilization exceeds 50%, Kubernetes will automatically spin up additional pods (up to 5) to handle the load. When load decreases, it scales back down to the minimum of 2.
 
 ---
 
-## 9. Demonstrate Kubernetes Self-Healing
+## 🔄 Self-Healing Demo
 
-Kubernetes automatically replaces deleted pods to maintain the desired replica count. This demonstrates the **self-healing** capability.
+Kubernetes automatically replaces deleted pods to maintain the desired replica count.
 
-### Step 9.1 — List the Current Pods
+**Step 1 — List current pods:**
 
 ```powershell
 kubectl get pods
 ```
 
-Note the names of the Student Service pods.
-
-### Step 9.2 — Delete One Pod
+**Step 2 — Delete a pod:**
 
 ```powershell
-# Replace <pod-name> with one of the student-service pod names
+# Replace <pod-name> with an actual student-service pod name
 kubectl delete pod <pod-name>
 ```
 
-### Step 9.3 — Observe the Recovery
-
-Immediately run:
+**Step 3 — Watch the recovery:**
 
 ```powershell
 kubectl get pods
 ```
 
-You will see that:
-- The deleted pod is in `Terminating` state.
-- A **new pod** has been automatically created to replace it.
-- After a few seconds, the new pod reaches `Running` state.
-- The total count is back to **2 pods** for Student Service.
+You'll see:
+- The deleted pod enters `Terminating` state
+- A **new pod** is automatically created as a replacement
+- Within seconds, the new pod reaches `Running` state
+- Total count returns to **2 pods** for Student Service
 
-This proves that Kubernetes automatically maintains the desired number of replicas as defined in the Deployment configuration.
+This confirms Kubernetes maintains the desired state defined in the Deployment spec.
 
 ---
 
-## 10. Cleanup
+## 📌 Useful Commands
 
-To remove all deployed resources:
+| Command                                  | Description                          |
+|------------------------------------------|--------------------------------------|
+| `kubectl get pods -o wide`               | List pods with node/IP details       |
+| `kubectl get services`                   | List all services                    |
+| `kubectl get deployments`                | List all deployments                 |
+| `kubectl get hpa`                        | Check auto-scaler status             |
+| `kubectl logs <pod-name>`                | View logs for a specific pod         |
+| `kubectl describe deployment <name>`     | Detailed info about a deployment     |
+| `kubectl describe hpa <name>`            | Detailed info about an HPA           |
+
+---
+
+## 🧹 Cleanup
+
+Remove all deployed resources and stop the cluster:
 
 ```powershell
-kubectl delete -f ./k8s/student-deployment.yaml
-kubectl delete -f ./k8s/student-service.yaml
-kubectl delete -f ./k8s/course-deployment.yaml
-kubectl delete -f ./k8s/course-service.yaml
-```
+# Delete all K8s resources
+kubectl delete -f ./k8s/
 
-To stop Minikube:
-
-```powershell
+# Stop Minikube
 minikube stop
 ```
 
 ---
 
-## 11. Conclusion
+## 📝 Conclusion
 
-This project successfully demonstrates the deployment of scalable microservices using Kubernetes on a local Minikube cluster. The key DevOps concepts covered include:
+This project demonstrates the deployment of **scalable microservices** on a local Kubernetes cluster using Minikube. Key takeaways:
 
-- **Containerization** — Each microservice is packaged into an independent Docker container, ensuring consistency across environments.
-- **Orchestration** — Kubernetes manages the deployment, networking, and lifecycle of containers.
-- **Scalability** — The Student Service is deployed with multiple replicas, showing how Kubernetes can distribute load across pods.
-- **Self-Healing** — When a pod is deleted, Kubernetes automatically creates a replacement to maintain the desired state.
-- **Service Discovery** — Kubernetes Services provide stable network endpoints for accessing the microservices, regardless of which pod handles the request.
+| Concept              | What Was Demonstrated                                                       |
+|----------------------|-----------------------------------------------------------------------------|
+| **Containerization** | Each service packaged into an independent Docker container                  |
+| **Orchestration**    | Kubernetes manages deployment, networking, and pod lifecycle                 |
+| **Scalability**      | HPA auto-scales Student Service from 2 to 5 pods based on CPU load         |
+| **Self-Healing**     | Deleted pods are automatically replaced to maintain desired state           |
+| **Service Discovery**| Kubernetes Services provide stable endpoints regardless of pod identity     |
 
-This architecture can be extended to production-grade systems by adding features such as Ingress controllers, CI/CD pipelines, monitoring, and cloud-based Kubernetes clusters (e.g., GKE, EKS, AKS).
+> This architecture can be extended to production by adding **Ingress controllers**, **CI/CD pipelines**, **monitoring (Prometheus/Grafana)**, and deploying to managed clusters like **GKE**, **EKS**, or **AKS**.
 
 ---
 
 *Project developed for academic submission — Scalable Microservices Deployment Using Kubernetes.*
-#   S c a l a b l e - m i c r o s e r v i c e s - u s i n g - K u b e r n e t e s  
- 
