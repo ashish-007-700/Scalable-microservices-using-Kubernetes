@@ -1,0 +1,25 @@
+# Kubernetes Deployment for Course Service
+# Creates 1 replica (default)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: course-service
+  labels:
+    app: course-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: course-service
+  template:
+    metadata:
+      labels:
+        app: course-service
+    spec:
+      containers:
+        - name: course-service
+          image: course-service:latest
+          # Use local Docker images built inside Minikube (do not pull from a registry)
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 3002
